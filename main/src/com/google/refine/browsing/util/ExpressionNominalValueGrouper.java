@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Properties;
 
 import com.google.refine.browsing.DecoratedValue;
@@ -77,7 +78,7 @@ public class ExpressionNominalValueGrouper implements RowVisitor, RecordVisitor 
     /*
      * Computed results
      */
-    final public Map<Object, IndexedNominalFacetChoice> choices = new HashMap<Object, IndexedNominalFacetChoice>();
+    final public Map<Object, IndexedNominalFacetChoice> choices = new LinkedHashMap<Object, IndexedNominalFacetChoice>();
     public int blankCount = 0;
     public int errorCount = 0;
 
