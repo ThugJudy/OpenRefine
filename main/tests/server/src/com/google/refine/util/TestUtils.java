@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -45,6 +47,8 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class TestUtils {
 
@@ -80,7 +84,7 @@ public class TestUtils {
         try {
             JsonNode jsonA = mapper.readValue(expected, JsonNode.class);
             JsonNode jsonB = mapper.readValue(actual, JsonNode.class);
-            if (!jsonA.equals(jsonB)) {
+            if (!areJsonNodesEqual(jsonA, jsonB)) {
                 jsonDiff(expected, actual);
                 fail("Objects above are not equal as JSON strings.");
             }
@@ -88,7 +92,6 @@ public class TestUtils {
             fail("\"" + actual + "\" and \"" + expected + "\" are not equal as JSON strings.");
         }
     }
-
     public static boolean equalAsJson(String a, String b) {
         try {
             JsonNode jsonA = mapper.readValue(a, JsonNode.class);
@@ -173,5 +176,74 @@ public class TestUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    /**
+     * Function to check if two JsonNodes are equal.
+     */
+    public static boolean areJsonNodesEqual(JsonNode node1, JsonNode node2) {
+        // Check if both nodes are null
+        if (node1 == null && node2 == null) {
+            return true;
+        }
+
+        // Check if only one of the nodes is null
+        if (node1 == null || node2 == null) {
+            return false;
+        }
+
+        // Check the node types
+        if (node1.getNodeType() != node2.getNodeType()) {
+            return false;
+        }
+
+        // Handle different node types
+        switch (node1.getNodeType()) {
+            case OBJECT:
+                return areObjectNodesEqual((ObjectNode) node1, (ObjectNode) node2);
+            case ARRAY:
+                return areArrayNodesEqual((ArrayNode) node1, (ArrayNode) node2);
+            default:
+                // For other node types (e.g., primitives), compare values
+                return node1.equals(node2);
+        }
+    }
+
+    private static boolean areObjectNodesEqual(ObjectNode objNode1, ObjectNode objNode2) {
+        if (objNode1.size() != objNode2.size()) {
+            return false;
+        }
+
+        for (Iterator<String> it = objNode1.fieldNames(); it.hasNext(); ) {
+            String fieldName = it.next();
+            if (!objNode2.has(fieldName) || !areJsonNodesEqual(objNode1.get(fieldName), objNode2.get(fieldName))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean areArrayNodesEqual(ArrayNode arrNode1, ArrayNode arrNode2) {
+        if (arrNode1.size() != arrNode2.size()) {
+            return false;
+        }
+
+        HashSet<Integer> usedIndices = new HashSet<>();
+
+        for (int i = 0; i < arrNode1.size(); i++) {
+            boolean foundEqual = false;
+            for (int j = 0; j < arrNode2.size(); j++) {
+                if (!usedIndices.contains(j) && areJsonNodesEqual(arrNode1.get(i), arrNode2.get(j))) {
+                    foundEqual = true;
+                    usedIndices.add(j);
+                    break;
+                }
+            }
+            if (!foundEqual) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

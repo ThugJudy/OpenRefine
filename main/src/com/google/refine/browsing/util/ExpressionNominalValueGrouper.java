@@ -78,7 +78,7 @@ public class ExpressionNominalValueGrouper implements RowVisitor, RecordVisitor 
     /*
      * Computed results
      */
-    final public Map<Object, IndexedNominalFacetChoice> choices = new LinkedHashMap<Object, IndexedNominalFacetChoice>();
+    final public Map<Object, IndexedNominalFacetChoice> choices = new HashMap<Object, IndexedNominalFacetChoice>();
     public int blankCount = 0;
     public int errorCount = 0;
 
