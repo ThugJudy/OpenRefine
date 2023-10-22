@@ -36,6 +36,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -47,8 +48,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class TestUtils {
 
@@ -84,7 +83,7 @@ public class TestUtils {
         try {
             JsonNode jsonA = mapper.readValue(expected, JsonNode.class);
             JsonNode jsonB = mapper.readValue(actual, JsonNode.class);
-            if (!areJsonNodesEqual(jsonA, jsonB)) {
+            if (!jsonDeepEquals(jsonA, jsonB)) {
                 jsonDiff(expected, actual);
                 fail("Objects above are not equal as JSON strings.");
             }
@@ -180,70 +179,42 @@ public class TestUtils {
     /**
      * Function to check if two JsonNodes are equal.
      */
-    public static boolean areJsonNodesEqual(JsonNode node1, JsonNode node2) {
-        // Check if both nodes are null
-        if (node1 == null && node2 == null) {
-            return true;
-        }
+    private static boolean jsonDeepEquals(JsonNode node1, JsonNode node2) {
+        if (node1.isArray() && node2.isArray()) {
+            Set<JsonNode> set1 = new HashSet<>();
+            Set<JsonNode> set2 = new HashSet<>();
 
-        // Check if only one of the nodes is null
-        if (node1 == null || node2 == null) {
-            return false;
-        }
+            for (JsonNode node : node1) {
+                set1.add(node);
+            }
+            for (JsonNode node : node2) {
+                set2.add(node);
+            }
 
-        // Check the node types
-        if (node1.getNodeType() != node2.getNodeType()) {
-            return false;
-        }
-
-        // Handle different node types
-        switch (node1.getNodeType()) {
-            case OBJECT:
-                return areObjectNodesEqual((ObjectNode) node1, (ObjectNode) node2);
-            case ARRAY:
-                return areArrayNodesEqual((ArrayNode) node1, (ArrayNode) node2);
-            default:
-                // For other node types (e.g., primitives), compare values
-                return node1.equals(node2);
-        }
-    }
-
-    private static boolean areObjectNodesEqual(ObjectNode objNode1, ObjectNode objNode2) {
-        if (objNode1.size() != objNode2.size()) {
-            return false;
-        }
-
-        for (Iterator<String> it = objNode1.fieldNames(); it.hasNext(); ) {
-            String fieldName = it.next();
-            if (!objNode2.has(fieldName) || !areJsonNodesEqual(objNode1.get(fieldName), objNode2.get(fieldName))) {
+            if (set1.size() != set2.size()) {
                 return false;
             }
-        }
 
-        return true;
-    }
-
-    private static boolean areArrayNodesEqual(ArrayNode arrNode1, ArrayNode arrNode2) {
-        if (arrNode1.size() != arrNode2.size()) {
-            return false;
-        }
-
-        HashSet<Integer> usedIndices = new HashSet<>();
-
-        for (int i = 0; i < arrNode1.size(); i++) {
-            boolean foundEqual = false;
-            for (int j = 0; j < arrNode2.size(); j++) {
-                if (!usedIndices.contains(j) && areJsonNodesEqual(arrNode1.get(i), arrNode2.get(j))) {
-                    foundEqual = true;
-                    usedIndices.add(j);
-                    break;
+            for (JsonNode node : set1) {
+                if (!set2.contains(node)) {
+                    return false;
                 }
             }
-            if (!foundEqual) {
+            return true;
+        } else if (node1.isObject() && node2.isObject()) {
+            if(node1.size() != node2.size()) {
                 return false;
             }
+            Iterator<String> fieldNames = node1.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                if (!jsonDeepEquals(node1.get(fieldName), node2.get(fieldName))) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return node1.equals(node2);
         }
-
-        return true;
     }
 }
