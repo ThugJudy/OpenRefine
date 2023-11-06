@@ -34,6 +34,9 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -80,7 +83,7 @@ public class TestUtils {
         try {
             JsonNode jsonA = mapper.readValue(expected, JsonNode.class);
             JsonNode jsonB = mapper.readValue(actual, JsonNode.class);
-            if (!jsonA.equals(jsonB)) {
+            if (!jsonDeepEquals(jsonA, jsonB)) {
                 jsonDiff(expected, actual);
                 fail("Objects above are not equal as JSON strings.");
             }
@@ -88,7 +91,6 @@ public class TestUtils {
             fail("\"" + actual + "\" and \"" + expected + "\" are not equal as JSON strings.");
         }
     }
-
     public static boolean equalAsJson(String a, String b) {
         try {
             JsonNode jsonA = mapper.readValue(a, JsonNode.class);
@@ -172,6 +174,47 @@ public class TestUtils {
             System.out.print(writer.toString());
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+    /**
+     * Function to check if two JsonNodes are equal.
+     */
+    private static boolean jsonDeepEquals(JsonNode node1, JsonNode node2) {
+        if (node1.isArray() && node2.isArray()) {
+            Set<JsonNode> set1 = new HashSet<>();
+            Set<JsonNode> set2 = new HashSet<>();
+
+            for (JsonNode node : node1) {
+                set1.add(node);
+            }
+            for (JsonNode node : node2) {
+                set2.add(node);
+            }
+
+            if (set1.size() != set2.size()) {
+                return false;
+            }
+
+            for (JsonNode node : set1) {
+                if (!set2.contains(node)) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (node1.isObject() && node2.isObject()) {
+            if(node1.size() != node2.size()) {
+                return false;
+            }
+            Iterator<String> fieldNames = node1.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                if (!jsonDeepEquals(node1.get(fieldName), node2.get(fieldName))) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return node1.equals(node2);
         }
     }
 }
